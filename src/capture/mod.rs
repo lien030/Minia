@@ -1,9 +1,11 @@
 use std::error::Error;
-use std::io;
+use std::{io, thread};
 use std::io::{ErrorKind};
+use crossbeam_channel::Sender;
 use opencv::{highgui, videoio};
-use opencv::core::{Point, Scalar};
-use opencv::imgproc::{put_text, FONT_HERSHEY_DUPLEX};
+use opencv::core::{Point, Rect, Scalar};
+use opencv::highgui::destroy_window;
+use opencv::imgproc::{put_text, rectangle, FONT_HERSHEY_DUPLEX};
 use opencv::prelude::*;
 
 #[cfg(test)]
@@ -40,7 +42,7 @@ impl VDevice {
                                 put_text(&mut frame, &format!("Device: {}", index), Point::from((10, 30)), FONT_HERSHEY_DUPLEX, 0.6, Scalar::from((232.0, 122.0, 114.0)), 1, 0, false)?;
                                 // tips
                                 put_text(&mut frame, TIPS, Point::from((10, height - 20)), FONT_HERSHEY_DUPLEX, 0.6, Scalar::from((232.0, 122.0, 114.0)), 1, 0, false)?;
-                                highgui::imshow(window_title, &frame)?;
+                                highgui::imshow(&window_title, &frame)?;
                             }
                             let key = highgui::wait_key(10)?;
                             match key {
@@ -59,6 +61,7 @@ impl VDevice {
                                 }
                                 89 | 121 => {
                                     // y or Y: yes
+                                    destroy_window(window_title)?;
                                     return Ok(Self::new(index));
                                 }
                                 81 | 113 => {
@@ -78,6 +81,68 @@ impl VDevice {
                     index = 0;
                 }
             }
+        }
+    }
+
+    pub fn check_multi_qrcodes(&self, rxing: bool) -> Result<(), Box<dyn Error>> {
+        let titile = "Check multi QR codes - Minia";
+        let mut frame = Mat::default();
+        let mut cam = videoio::VideoCapture::new(self.index, videoio::CAP_ANY)?;
+        highgui::named_window(titile, highgui::WINDOW_AUTOSIZE)?;
+        loop {
+            cam.read(&mut frame).unwrap();
+
+            let height = frame.size()?.height;
+            let width = frame.size()?.width;
+
+            let (is_multi, diff) = if rxing {
+                // rxing
+                super::calc::Calc::is_multi_qr_rxing(&frame)
+            } else {
+                // opencv
+                super::calc::Calc::is_multi_qr_rxing(&frame)
+            };
+            // blue rectangle
+            let mut rect_color = Scalar::from((255.0, 0.0, 0.0));
+            let mut tips = String::from("No QR code, Press q to quit");
+            if is_multi {
+                // green rectangle
+                rect_color = Scalar::from((0.0, 255.0, 0.0));
+                tips = String::from(format!("Delay: {}, Press c to continue", diff));
+            }
+
+            rectangle(&mut frame, Rect::new(0, 0, width, height), rect_color, 2, 8, 0)?;
+            put_text(&mut frame, &tips, Point::from((10, 30)), FONT_HERSHEY_DUPLEX, 0.6, Scalar::from((232.0, 122.0, 114.0)), 1, 0, false)?;
+            highgui::imshow(&titile, &frame)?;
+
+            let key = highgui::wait_key(10)?;
+            match key {
+                81 | 113 => {
+                    // q or Q: quit
+                    return Err(io::Error::new(ErrorKind::Interrupted, "User quit").into());
+                }
+                67 | 99 => {
+                    // c or C: continue
+                    if is_multi {
+                        destroy_window(titile)?;
+                        return Ok(());
+                    }
+                }
+                _ => {}
+            }
+        }
+    }
+
+    pub fn worker(&self, tx: Sender<Mat>, fps: u64) -> Result<(), Box<dyn Error>> {
+        let tx_clone = tx.clone();
+        let mut cam = videoio::VideoCapture::new(self.index, videoio::CAP_ANY)?;
+        loop {
+            let mut frame = Mat::default();
+            cam.read(&mut frame)?;
+            if !frame.empty() {
+                tx_clone.send(frame)?;
+            }
+            thread::sleep(std::time::Duration::from_millis(1000 / fps));
         }
     }
 }

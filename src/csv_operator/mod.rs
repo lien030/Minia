@@ -42,6 +42,8 @@ impl CsvOperator {
 
     // only this thread will use "self"
     pub fn worker(self, rx: Receiver<String>) {
+        // write: timestamp, delay
+        self.write_vec(vec!["timestamp", "delay"]).unwrap();
         thread::spawn(move || {
             loop {
                 select! {
