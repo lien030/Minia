@@ -20,6 +20,7 @@ impl CsvOperator {
         File::create(&name)?;
         println!("Created file: {}", name);
         let file = OpenOptions::new().write(true).append(true).open(&name)?;
+        csv::Writer::from_writer(&file).write_record(&["timestamp", "delay"])?;
         Ok(Self {
             file_name: name,
             timestamp,
@@ -43,7 +44,6 @@ impl CsvOperator {
     // only this thread will use "self"
     pub fn worker(self, rx: Receiver<String>) {
         // write: timestamp, delay
-        self.write_vec(vec!["timestamp", "delay"]).unwrap();
         thread::spawn(move || {
             loop {
                 select! {

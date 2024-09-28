@@ -16,10 +16,8 @@ static DELAY_CHANNEL: Lazy<(Sender<String>, Receiver<String>)> = Lazy::new(|| un
 static CAP_FPS: u64 = 30;
 
 fn main() {
-    // println!("{:?}",opencv::core::get_cuda_enabled_device_count())
-
     let capture = capture::VDevice::vd_picker().unwrap();
-    capture.check_multi_qrcodes(true).unwrap();
+    capture.check_multi_qrcodes().unwrap();
 
     let csv_op = csv_operator::CsvOperator::new(true).unwrap();
     let (ref tx_delay, ref rx_delay) = *DELAY_CHANNEL;
@@ -28,7 +26,7 @@ fn main() {
     let (ref tx_mat, ref rx_mat) = *MAT_CHANNEL;
     let img_calc = calc::Calc::new();
     // img_calc.worker(tx_delay.clone(), rx_mat.clone());
-    img_calc.worker_rxing(tx_delay.clone(), rx_mat.clone());
+    img_calc.worker(tx_delay.clone(), rx_mat.clone());
 
     println!("Started at: {}", chrono::Local::now().format("%Y-%m-%d %H:%M:%S"));
     capture.worker(tx_mat.clone(), CAP_FPS).unwrap();

@@ -1,5 +1,4 @@
 use opencv::imgcodecs::imread_def;
-use rxing::helpers::detect_multiple_in_file;
 use super::*;
 
 #[test]
@@ -13,9 +12,15 @@ fn test_calc() {
 }
 
 #[test]
-fn test_calc_rxing() {
-    let results = detect_multiple_in_file("qrcode2.jpg").unwrap();
-    for result in results {
-        println!("{} -> {}", result.getBarcodeFormat(), result.getText())
-    }
+fn test_calc_wechat() {
+    let mut detector = WeChatQRCode::new(
+        "./model/detect.prototxt",
+        "./model/detect.caffemodel",
+        "./model/sr.prototxt",
+        "./model/sr.caffemodel",
+    ).unwrap();
+    let img = imread_def("qrcode2.jpg").unwrap();
+    let results = detector.detect_and_decode_def(&img);
+    assert!(results.is_ok());
+    println!("Decoded info: {:?}", results);
 }

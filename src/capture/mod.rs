@@ -11,7 +11,7 @@ use opencv::prelude::*;
 #[cfg(test)]
 mod tests;
 
-static TIPS: &str = "Press n: next, p: previous, y: yes, q: quit";
+static TIPS: &str = "Press n: next, p: previous, c: continue, q: quit";
 
 pub struct VDevice {
     index: i32,
@@ -59,8 +59,8 @@ impl VDevice {
                                     }
                                     println!("No previous device");
                                 }
-                                89 | 121 => {
-                                    // y or Y: yes
+                                67 | 99 => {
+                                    // c or C: continue
                                     destroy_window(window_title)?;
                                     return Ok(Self::new(index));
                                 }
@@ -84,7 +84,7 @@ impl VDevice {
         }
     }
 
-    pub fn check_multi_qrcodes(&self, rxing: bool) -> Result<(), Box<dyn Error>> {
+    pub fn check_multi_qrcodes(&self) -> Result<(), Box<dyn Error>> {
         let titile = "Check multi QR codes - Minia";
         let mut frame = Mat::default();
         let mut cam = videoio::VideoCapture::new(self.index, videoio::CAP_ANY)?;
@@ -95,13 +95,8 @@ impl VDevice {
             let height = frame.size()?.height;
             let width = frame.size()?.width;
 
-            let (is_multi, diff) = if rxing {
-                // rxing
-                super::calc::Calc::is_multi_qr_rxing(&frame)
-            } else {
-                // opencv
-                super::calc::Calc::is_multi_qr_rxing(&frame)
-            };
+            let (is_multi, diff) = super::calc::Calc::is_multi_qr(&frame);
+
             // blue rectangle
             let mut rect_color = Scalar::from((255.0, 0.0, 0.0));
             let mut tips = String::from("No QR code, Press q to quit");
