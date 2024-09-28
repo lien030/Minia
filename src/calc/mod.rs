@@ -1,6 +1,6 @@
 use std::thread;
 use crossbeam_channel::{select, Receiver, Sender};
-use opencv::core::Vector;
+use opencv::core::{AlgorithmHint, Vector};
 use opencv::objdetect::QRCodeDetector;
 use opencv::prelude::*;
 
@@ -51,7 +51,7 @@ impl Calc {
         let width = m.cols();
         // mat -> luma
         let mut gray = Mat::default();
-        opencv::imgproc::cvt_color(&m, &mut gray, opencv::imgproc::COLOR_BGR2GRAY, 0)?;
+        opencv::imgproc::cvt_color(&m, &mut gray, opencv::imgproc::COLOR_BGR2GRAY, 0, AlgorithmHint::ALGO_HINT_DEFAULT)?;
 
         let luma_data = gray.data_bytes()?.to_vec();
 
