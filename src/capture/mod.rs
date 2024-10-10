@@ -28,7 +28,7 @@ impl VDevice {
         highgui::named_window(window_title, highgui::WINDOW_AUTOSIZE)?;
         let mut index = 0;
         loop {
-            let cam = videoio::VideoCapture::new(index, videoio::CAP_ANY);
+            let cam = videoio::VideoCapture::new(index, videoio::CAP_DSHOW);
             match cam {
                 Ok(mut cam) => {
                     if videoio::VideoCapture::is_opened(&cam)? {
@@ -87,7 +87,7 @@ impl VDevice {
     pub fn check_multi_qrcodes(&self) -> Result<(), Box<dyn Error>> {
         let titile = "Check multi QR codes - Minia";
         let mut frame = Mat::default();
-        let mut cam = videoio::VideoCapture::new(self.index, videoio::CAP_ANY)?;
+        let mut cam = videoio::VideoCapture::new(self.index, videoio::CAP_DSHOW)?;
         highgui::named_window(titile, highgui::WINDOW_AUTOSIZE)?;
         loop {
             cam.read(&mut frame).unwrap();
@@ -130,7 +130,7 @@ impl VDevice {
 
     pub fn worker(&self, tx: Sender<Mat>, fps: u64) -> Result<(), Box<dyn Error>> {
         let tx_clone = tx.clone();
-        let mut cam = videoio::VideoCapture::new(self.index, videoio::CAP_ANY)?;
+        let mut cam = videoio::VideoCapture::new(self.index, videoio::CAP_DSHOW)?;
         loop {
             let mut frame = Mat::default();
             cam.read(&mut frame)?;
